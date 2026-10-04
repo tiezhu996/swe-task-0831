@@ -16,7 +16,21 @@
 ```bash
 git clone https://github.com/tiezhu996/swe-task-0831.git \
   ~/.codex/skills/swe-task-0831
+python3 -m pip install -r requirements.txt
 ```
+
+需要运行测试时，安装开发依赖：
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+```
+
+## 依赖
+
+- 运行依赖：`openpyxl>=3.1,<4`
+- 测试依赖：`pytest>=8,<9`
+
+Git、GitHub CLI（`gh`）和 Python 3 是执行发布流程所需的外部工具。
 
 ## 验证
 
