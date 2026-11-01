@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "projects": [
+    {
+      "key": "atlassian-api/atlassian-python-api",
+      "repo": "atlassian-api/atlassian-python-api",
+      "added_at": "2026-11-01",
+      "source": "workflow",
+      "tasks": [
+        "5814-atlassian-python-api",
+        "5816-atlassian-python-api",
+        "5817-atlassian-python-api"
+      ]
+    },
+    {
+      "key": "forceu/gokapi",
+      "repo": "Forceu/Gokapi",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "634-Gokapi"
+      ]
+    },
+    {
+      "key": "gitguardian/ggshield",
+      "repo": "GitGuardian/ggshield",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "5107-ggshield",
+        "5108-ggshield",
+        "5109-ggshield",
+        "5110-ggshield",
+        "5111-ggshield",
+        "5112-ggshield",
+        "5113-ggshield",
+        "5114-ggshield",
+        "5123-ggshield",
+        "5124-ggshield"
+      ]
+    },
+    {
+      "key": "mandiant/speakeasy",
+      "repo": "mandiant/speakeasy",
+      "added_at": "2026-11-01",
+      "source": "workflow",
+      "tasks": [
+        "5818-speakeasy",
+        "5819-speakeasy",
+        "5820-speakeasy",
+        "5821-speakeasy",
+        "5822-speakeasy",
+        "5823-speakeasy",
+        "5824-speakeasy",
+        "5834-speakeasy",
+        "5835-speakeasy",
+        "5836-speakeasy"
+      ]
+    },
+    {
+      "key": "marketcalls/openalgo",
+      "repo": "marketcalls/openalgo",
+      "added_at": "2026-11-01",
+      "source": "workflow",
+      "tasks": [
+        "5837-openalgo",
+        "5825-openalgo",
+        "5826-openalgo",
+        "5830-openalgo",
+        "5831-openalgo",
+        "5832-openalgo",
+        "5833-openalgo"
+      ]
+    },
+    {
+      "key": "maxpert/marmot",
+      "repo": "maxpert/marmot",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "3377-marmot",
+        "3378-marmot",
+        "3379-marmot",
+        "3380-marmot",
+        "3381-marmot"
+      ]
+    },
+    {
+      "key": "mayswind/ezbookkeeping",
+      "repo": "mayswind/ezbookkeeping",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "precheck-1527-ezbookkeeping",
+        "precheck-1528-ezbookkeeping",
+        "precheck-1529-ezbookkeeping"
+      ]
+    },
+    {
+      "key": "noborus/trdsql",
+      "repo": "noborus/trdsql",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "2410-trdsql-final"
+      ]
+    },
+    {
+      "key": "palemoky/chinese-poetry-api",
+      "repo": "palemoky/chinese-poetry-api",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "868-chinese-poetry-api",
+        "869-chinese-poetry-api",
+        "870-chinese-poetry-api"
+      ]
+    },
+    {
+      "key": "pchalasani/claude-code-tools",
+      "repo": "pchalasani/claude-code-tools",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "5767-claude-code-tools",
+        "5803-claude-code-tools"
+      ]
+    },
+    {
+      "key": "rdflib/rdflib",
+      "repo": "RDFLib/rdflib",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "5125-rdflib",
+        "5126-rdflib",
+        "5127-rdflib",
+        "5128-rdflib",
+        "5130-rdflib",
+        "5131-rdflib",
+        "5132-rdflib",
+        "5133-rdflib"
+      ]
+    },
+    {
+      "key": "sky22333/hubproxy",
+      "repo": "sky22333/hubproxy",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "3374-hubproxy",
+        "3375-hubproxy",
+        "3376-hubproxy",
+        "3382-hubproxy",
+        "3383-hubproxy"
+      ]
+    },
+    {
+      "key": "stupside/castor",
+      "repo": "stupside/castor",
+      "added_at": "2026-10-31",
+      "source": "workflow",
+      "tasks": [
+        "3369-castor",
+        "3370-castor",
+        "3371-castor",
+        "3372-castor",
+        "3373-castor"
+      ]
+    }
+  ]
+}

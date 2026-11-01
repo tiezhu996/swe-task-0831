@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -12,6 +13,20 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "runtime/tools"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from swe_credentials import DEFAULT_CONFIG, command_env, github_check, load_config
+
+CONFIG = None
+COMMAND_ENV = None
+
+
+def remote_url(repository):
+    if CONFIG and CONFIG['github'].get('transport') == 'ssh':
+        return f"git@{CONFIG['github']['ssh_host']}:{repository.slug}.git"
+    return repository.url
 
 
 GITHUB_REPOSITORY_URL_PATTERN = re.compile(
@@ -41,15 +56,16 @@ class GitHubRepository:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="将 1 至 3 个完整任务工作目录提交到自有 GitHub fork 的 task1 至 taskN 分支"
+        description="将 1 至 3 个完整任务工作目录提交到自有 GitHub fork 的题级 task<N>-<任务目录名> 分支"
     )
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG, help="private credentials; never copied into task materials")
     parser.add_argument("--repo-url", required=True, help="原始 GitHub 仓库根地址")
     parser.add_argument("--commit", required=True, help="原始仓库的基线 Commit ID")
     parser.add_argument(
         "--task-dir",
         action="append",
         required=True,
-        help="完整 Git 任务工作目录；按给定顺序映射 task1 至 taskN，可重复传入 1 至 3 次",
+        help="完整 Git 任务工作目录；按给定顺序映射 task<N>-<任务目录名>，可重复传入 1 至 3 次",
     )
     parser.add_argument("--fork-url", help="已有自有 fork 的 GitHub 仓库根地址；省略时通过 gh 创建或复用当前账号的 fork")
     parser.add_argument("--commit-message-prefix", default="Implement SWE task", help="提交信息前缀")
@@ -67,10 +83,16 @@ def run(
     input_text: str | None = None,
     strip_output: bool = True,
 ) -> str:
-    result = subprocess.run(command, cwd=cwd, text=True, input=input_text, capture_output=True)
+    result = subprocess.run(command, cwd=cwd, text=True, input=input_text, capture_output=True, env=COMMAND_ENV)
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip()
-        raise CommandError(f"命令失败：{' '.join(command)}\n{detail}")
+        if CONFIG:
+            for service in ('swe', 'github'):
+                for key in ('password', 'token', 'session', 'csrf'):
+                    secret = CONFIG.get(service, {}).get(key)
+                    if secret:
+                        detail = detail.replace(secret, '[REDACTED]')
+        raise CommandError(f"命令失败：{command[0]} {command[1] if len(command)>1 else ''}\n{detail}")
     return result.stdout.strip() if strip_output else result.stdout
 
 
@@ -97,7 +119,7 @@ def ensure_fork(source: GitHubRepository, supplied_fork_url: str | None) -> GitH
         attempt = subprocess.run(
             ["gh", "repo", "fork", source.slug, "--clone=false", "--remote=false"],
             text=True,
-            capture_output=True,
+            capture_output=True, env=COMMAND_ENV,
         )
         if attempt.returncode:
             try:
@@ -108,6 +130,8 @@ def ensure_fork(source: GitHubRepository, supplied_fork_url: str | None) -> GitH
 
     if fork.slug.lower() == source.slug.lower():
         raise ValueError("fork 不能与原始 Repo URL 指向同一仓库")
+    if CONFIG and fork.owner.lower() != CONFIG['github']['login'].lower():
+        raise ValueError("fork owner 与已核验的私有凭据账号不一致")
     metadata = repository_metadata(fork)
     parent = str(metadata.get("parent", {}).get("full_name", "")).lower()
     if not metadata.get("fork") or parent != source.slug.lower():
@@ -129,7 +153,7 @@ def check_task_directory(task_dir: Path, baseline: str, allow_unverified: bool) 
     ancestor_check = subprocess.run(
         ["git", "-C", str(task_dir), "merge-base", "--is-ancestor", baseline, "HEAD"],
         text=True,
-        capture_output=True,
+        capture_output=True, env=COMMAND_ENV,
     )
     if ancestor_check.returncode:
         raise ValueError(f"任务目录的 HEAD 不包含基线 Commit {baseline}：{task_dir}")
@@ -147,7 +171,7 @@ def remote_branch_exists(repository_dir: Path, branch: str) -> bool:
     result = subprocess.run(
         ["git", "-C", str(repository_dir), "ls-remote", "--exit-code", "--heads", "origin", branch],
         text=True,
-        capture_output=True,
+        capture_output=True, env=COMMAND_ENV,
     )
     if result.returncode == 2:
         return False
@@ -189,10 +213,10 @@ def publish_task(
     author: tuple[str, str],
 ) -> dict:
     checkout = checkout_root / branch
-    run(["git", "clone", "--quiet", fork.url, str(checkout)])
+    run(["git", "clone", "--quiet", remote_url(fork), str(checkout)])
     run(["git", "-C", str(checkout), "config", "user.name", author[0]])
     run(["git", "-C", str(checkout), "config", "user.email", author[1]])
-    run(["git", "-C", str(checkout), "remote", "add", "upstream", source.url])
+    run(["git", "-C", str(checkout), "remote", "add", "upstream", remote_url(source)])
     run(["git", "-C", str(checkout), "fetch", "--quiet", "upstream", baseline])
     base_sha = run(["git", "-C", str(checkout), "rev-parse", "--verify", f"{baseline}^{{commit}}"])
     if remote_branch_exists(checkout, branch):
@@ -207,7 +231,20 @@ def publish_task(
         raise CommandError(f"无法检查暂存变更：{task_dir}")
     run(["git", "-C", str(checkout), "commit", "-m", f"{message_prefix}: {branch}"])
     task_commit = run(["git", "-C", str(checkout), "rev-parse", "HEAD"])
-    run(["git", "-C", str(checkout), "push", "--set-upstream", "origin", branch])
+    record = checkout_root / f"{branch}-publication.json"
+    receipt = {"fork": fork.url, "branch": branch, "baseline": base_sha,
+               "commit": task_commit, "checkout": str(checkout), "outcome": "prepared"}
+    record.write_text(json.dumps(receipt, indent=2) + "\n")
+    os.chmod(record, 0o600)
+    # Empty-ref lease closes the race between branch existence check and push.
+    receipt['outcome'] = 'push_started_reconcile_before_retry'
+    record.write_text(json.dumps(receipt, indent=2) + "\n")
+    run(["git", "-C", str(checkout), "push", f"--force-with-lease=refs/heads/{branch}:", "--set-upstream", "origin", f"HEAD:refs/heads/{branch}"])
+    remote = run(["git", "-C", str(checkout), "ls-remote", "--heads", "origin", f"refs/heads/{branch}"])
+    if not remote or remote.split()[0] != task_commit:
+        raise CommandError("推送回执无法核验；保留 checkout，仅查询远端后恢复，禁止盲目重推")
+    receipt['outcome'] = 'remote_sha_verified'
+    record.write_text(json.dumps(receipt, indent=2) + "\n")
     return {
         "task_dir": str(task_dir),
         "branch": branch,
@@ -216,8 +253,21 @@ def publish_task(
     }
 
 
+def task_branch(index: int, task_dir: Path) -> str:
+    """Use a per-task branch so one fork can hold many tasks from one repo."""
+    base = task_dir.name
+    conventional_prefix = f"task{index}-"
+    if base.startswith(conventional_prefix):
+        base = base[len(conventional_prefix) :]
+    return f"task{index}-{base}"
+
+
 def main() -> None:
+    global CONFIG, COMMAND_ENV
     args = parse_args()
+    CONFIG = load_config(args.config)
+    github_check(CONFIG)
+    COMMAND_ENV = command_env(CONFIG, 'github')
     if not 1 <= len(args.task_dir) <= 3:
         raise ValueError("--task-dir 必须提供 1 至 3 次")
     if not COMMIT_PATTERN.fullmatch(args.commit):
@@ -235,22 +285,24 @@ def main() -> None:
     else:
         author = author_identity(task_dirs[0])
     fork = ensure_fork(source, args.fork_url)
-    with tempfile.TemporaryDirectory(prefix="swe-task-commits-") as directory:
-        checkout_root = Path(directory)
-        entries = [
-            publish_task(
-                source,
-                fork,
-                args.commit,
-                task_dir,
-                f"task{index}",
-                args.commit_message_prefix,
-                checkout_root,
-                args.allow_unverified_task_tree,
-                author,
-            )
-            for index, task_dir in enumerate(task_dirs, start=1)
-        ]
+    publication_root = Path.home() / ".local/state/swe-task/publications"
+    publication_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    checkout_root = Path(tempfile.mkdtemp(prefix="publish-", dir=publication_root))
+    print(f"发布工作目录（失败保留，恢复前先核对远端）：{checkout_root}", file=sys.stderr)
+    entries = [
+        publish_task(
+            source,
+            fork,
+            args.commit,
+            task_dir,
+            task_branch(index, task_dir),
+            args.commit_message_prefix,
+            checkout_root,
+            args.allow_unverified_task_tree,
+            author,
+        )
+        for index, task_dir in enumerate(task_dirs, start=1)
+    ]
     print(json.dumps({"repo_url": source.url, "commit": args.commit, "fork_url": fork.url, "tasks": entries}, ensure_ascii=False, indent=2))
 
 
