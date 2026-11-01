@@ -5,3 +5,17 @@ __pycache__/
 .idea/
 .vscode/
 *.egg-info/
+*.bak-*
+.ruff_cache/
+runtime.backup-*/
+runtime.previous*/
+runtime.pre-*/
+runtime/local-backups/
+runtime-manifest.previous.json
+runtime/runtime-manifest*.bak-*
+runtime/runtime-manifest.before-*.json
+runtime/bin/swe-flow.bak-*
+runtime/bin/swe-flow
+runtime/bin/swe-submit
+runtime/precheck-client/cmd/swe-flow/swe-flow
+runtime/runtime-manifest.json

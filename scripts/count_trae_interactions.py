@@ -118,7 +118,8 @@ def inspect_log(log: Path, session_id: str) -> tuple[set[str], set[str], bool]:
     try:
         with log.open("r", encoding="utf-8", errors="replace") as handle:
             for line in handle:
-                if session_id not in line:
+                ids = re.findall(r'"(?:sessionId|chat_session_id|session_id)"\s*:\s*"([^"]+)"', line)
+                if not ids or set(ids) != {session_id}:
                     continue
                 plan_match = PLAN_EVENT.search(line)
                 if plan_match and plan_match.group("session") == session_id:
@@ -166,7 +167,7 @@ def main() -> int:
     observations = []
     for log in logs:
         plans, turns, completed = inspect_log(log, session_id)
-        if plans or turns:
+        if plans or turns or completed:
             observations.append((log, plans, turns, completed))
     if not observations:
         print(json.dumps({"session_id": session_id, "error": "no matching Trae renderer log found"}, ensure_ascii=False), file=sys.stderr)

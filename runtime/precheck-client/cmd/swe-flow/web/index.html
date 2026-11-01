@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SWE 工作台</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/tasks" aria-label="SWE 工作台首页"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><strong>SWE 工作台</strong></a>
+    <label class="search"><span class="sr-only">搜索任务、预检编号或仓库</span><input id="search" type="search" placeholder="搜索任务、预检编号或仓库" autocomplete="off" spellcheck="false"><kbd aria-hidden="true">/</kbd></label>
+    <div class="top-actions">
+      <button id="local-done" class="local-done" type="button" hidden title="只看本地已完成、待提交的任务"></button>
+      <button id="account-chip" class="account-chip" type="button" hidden title="切换 SWE 用户"></button>
+      <button id="platform-state" class="platform" type="button" hidden title="平台提交状态，点击重新读取"></button>
+      <button id="sync-state" class="sync" type="button" title="刷新本地任务和预检缓存"><span class="sync-dot" aria-hidden="true"></span><span id="sync-text">读取中</span></button>
+      <div class="menu-wrap"><button id="more-button" type="button" class="ghost icon" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button>
+        <div id="more-menu" class="menu" role="menu" hidden><button type="button" role="menuitem" id="settings-button">设置…</button><button type="button" role="menuitem" id="new-task">接入已有干净源码…</button><button type="button" role="menuitem" id="theme-toggle">切换深色 / 浅色</button></div></div>
+    </div>
+  </header>
+  <div id="notice" class="notice" role="status" hidden><span id="notice-text"></span><button type="button" id="notice-close" aria-label="关闭提示">×</button></div>
+  <div class="shell" id="shell">
+    <section class="queue" aria-label="任务列表">
+      <div class="queue-head">
+        <div class="scopes" id="scopes" role="tablist" aria-label="范围"></div>
+        <div class="toolbar">
+          <button id="filter-toggle" type="button" class="tool" aria-expanded="false" aria-controls="filter-panel"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16"><path d="M2 4h12M4.5 8h7M7 12h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>筛选<b id="filter-count"></b></button>
+          <label class="tool sort"><span class="sr-only">排序</span><select id="sort"></select></label>
+          <span id="result-count" class="result-count"></span>
+        </div>
+        <div id="active-filters" class="active-filters" hidden></div>
+        <div id="filter-panel" class="filter-panel" hidden></div>
+      </div>
+      <div id="list" class="list" role="listbox" aria-label="任务" tabindex="-1"></div>
+    </section>
+    <main id="detail" class="detail" aria-live="polite"></main>
+  </div>
+  <dialog id="task-dialog">
+    <form id="task-form" method="dialog">
+      <div class="dialog-head"><h2 id="dialog-title">接入已有干净源码</h2><button class="close" type="button" id="close-dialog" aria-label="关闭">×</button></div>
+      <p id="dialog-context" class="minor"></p>
+      <label>任务目录 <input name="task_dir" required placeholder="tasks/task1-example"></label>
+      <label>源码工作区 <input name="workspace" required placeholder="sources/task1-example"></label>
+      <label>任务标识 <input name="task_id" required placeholder="task1-example"></label>
+      <label id="repo-field">原始仓库 URL <input name="repo_url" type="url" placeholder="https://github.com/owner/repo"></label>
+      <div class="pair"><label>基线 Commit <input name="baseline" required></label><label>主要语言 <input name="language" value="Go" required></label></div>
+      <label id="prompt-field">冻结题面 <textarea name="prompt" rows="5"></textarea></label>
+      <p class="minor">源码必须干净，且 HEAD 等于基线 Commit。</p>
+      <div class="dialog-actions"><button type="button" class="ghost" id="cancel-dialog">取消</button><button type="submit" class="primary" id="task-save">建立任务</button></div>
+    </form>
+  </dialog>
+  <dialog id="unlock-dialog" aria-labelledby="unlock-title">
+    <div class="unlock-content">
+      <h2 id="unlock-title">确认修改字段</h2>
+      <p>解锁「<strong id="unlock-label"></strong>」进行修正？保存后重新锁定；材料变化后需要 Codex 重新审核。</p>
+      <div class="dialog-actions"><button type="button" class="ghost" id="cancel-unlock">取消</button><button type="button" class="primary" id="confirm-unlock">确认解锁</button></div>
+    </div>
+  </dialog>
+</body>
+</html>
